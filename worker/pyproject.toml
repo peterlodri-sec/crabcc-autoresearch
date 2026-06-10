@@ -5,6 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
     "requests>=2.31.0",
     "openai>=1.30.0",
+    "langsmith>=0.1.0",
 ]
 
 [tool.pytest.ini_options]

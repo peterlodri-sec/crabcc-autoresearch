@@ -124,8 +124,10 @@ cd crabcc-autoresearch/worker
 Set your API key and receiver URL, then start:
 
 ```bash
-export OPENROUTER_API_KEY=sk-or-...                              # openrouter.ai key
+export OPENROUTER_API_KEY=sk-or-...                              # dedicated openrouter key
 export LLM_MODEL=anthropic/claude-sonnet-4-6                     # optional — default is sonnet-4-6
+export LANGSMITH_API_KEY=ls__...                                 # optional — enables tracing at smith.langchain.com
+export LANGSMITH_PROJECT=crabcc-autoresearch                     # optional — project name in LangSmith
 export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787   # from Step 1
 export GITHUB_TOKEN=github_pat_...                               # PAT with contents:write on lambda-normalization-census
 export RUN_ID=crabcc-run-$(date +%Y%m%d-%H%M)

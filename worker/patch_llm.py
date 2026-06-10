@@ -20,14 +20,24 @@ import os as _os
 from openai import OpenAI as _OAI
 
 def _make_client():
-    return _OAI(
+    _client = _OAI(
         base_url="{OPENROUTER_BASE}",
         api_key=_os.environ.get("OPENROUTER_API_KEY", ""),
         default_headers={{
             "HTTP-Referer": "https://research.crabcc.app",
             "X-Title": "crabcc-autoresearch",
+            "X-crabcc-run": _os.environ.get("RUN_ID", "unnamed"),
+            "anthropic-beta": "prompt-caching-2024-07-31",
         }},
     )
+    try:
+        if _os.environ.get("LANGSMITH_API_KEY"):
+            from langsmith.wrappers import wrap_openai as _wrap
+            _os.environ.setdefault("LANGSMITH_PROJECT", "crabcc-autoresearch")
+            return _wrap(_client)
+    except ImportError:
+        pass
+    return _client
 """
 
 REPLACEMENTS: list[tuple[str, str]] = [
