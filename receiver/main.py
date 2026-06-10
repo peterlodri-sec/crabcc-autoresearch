@@ -121,16 +121,35 @@ def get_run(run_id: str):
 def list_sessions():
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT * FROM run_sessions ORDER BY started_at DESC LIMIT 50"
+            """
+            SELECT s.*, MIN(r.val_bpb) AS best_val_bpb
+            FROM run_sessions s
+            LEFT JOIN runs r ON r.run_id = s.run_id
+            GROUP BY s.id
+            ORDER BY s.started_at DESC
+            LIMIT 50
+            """,
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
 
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     with get_db() as conn:
         sessions = conn.execute(
-            "SELECT * FROM run_sessions ORDER BY started_at DESC LIMIT 50"
+            """
+            SELECT s.*, MIN(r.val_bpb) AS best_val_bpb
+            FROM run_sessions s
+            LEFT JOIN runs r ON r.run_id = s.run_id
+            GROUP BY s.id
+            ORDER BY s.started_at DESC
+            LIMIT 50
+            """,
         ).fetchall()
         steps = conn.execute(
             "SELECT * FROM runs ORDER BY ts DESC LIMIT 200"
@@ -143,6 +162,7 @@ def dashboard():
         f"<td>{escape(str(s['machine_type']))}</td>"
         f"<td>${escape(str(round(s['budget_usd'], 4)))}</td>"
         f"<td>${escape(str(round(s['total_cost_usd'] or 0, 4)))}</td>"
+        f"<td>{escape(str(round(s['best_val_bpb'], 4) if s['best_val_bpb'] is not None else '—'))}</td>"
         f"<td>{escape(str(s['started_at']))}</td>"
         f"<td>{escape(str(s['ended_at'] or '—'))}</td>"
         f"</tr>"
@@ -179,7 +199,7 @@ def dashboard():
 <table>
 <thead><tr>
   <th>run_id</th><th>GPU (provider)</th><th>machine</th>
-  <th>budget</th><th>actual cost</th><th>started</th><th>ended</th>
+  <th>budget</th><th>actual cost</th><th>best val_bpb</th><th>started</th><th>ended</th>
 </tr></thead>
 <tbody>{session_rows}</tbody>
 </table>

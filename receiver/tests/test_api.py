@@ -87,6 +87,21 @@ def test_list_sessions():
     assert "t-list-1" in ids
 
 
+def test_health():
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
+def test_sessions_include_best_val_bpb():
+    client.post("/api/runs/start", json={"run_id": "t-best-1", "budget_usd": 5.0})
+    client.post("/api/telemetry", json={"run_id": "t-best-1", "step": 1, "val_bpb": 2.5, "status": "SUCCESS"})
+    client.post("/api/telemetry", json={"run_id": "t-best-1", "step": 2, "val_bpb": 2.1, "status": "SUCCESS"})
+    resp = client.get("/api/sessions")
+    session = next(s for s in resp.json() if s["run_id"] == "t-best-1")
+    assert session["best_val_bpb"] == 2.1
+
+
 def test_ingest_with_cost():
     resp = client.post("/api/telemetry", json={
         "run_id": "t-cost-1",
