@@ -4,6 +4,8 @@
 
 Runs Karpathy's [`autoresearch`](https://github.com/karpathy/autoresearch) loop on an ephemeral GPU spot instance. Every 5-minute training cycle reports validation loss, API cost, and status back to a FastAPI receiver on your Hetzner VM over Tailscale. No babysitting. Full cost transparency. Results visible at `research.crabcc.app`.
 
+**context:** this repo is the *compute harness* for the [`lambda-normalization-census`](https://github.com/peterlodri-sec/lambda-normalization-census) public research project — an open dataset on the normalization geometry of the untyped λ-calculus. each completed run automatically archives its artifacts (`results.tsv`, final `train.py`, cost + metric summary) into `data/autoresearch/` in that repo, extending the public dataset without manual intervention.
+
 ---
 
 ## architecture
