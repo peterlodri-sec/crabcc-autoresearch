@@ -31,3 +31,9 @@ results/
 
 # cloud-init customisations (secrets go here, never commit)
 /tmp/startup.sh
+
+# slot working directories (autoresearch artifacts, not source)
+worker/slots/
+
+# LangSmith run URL written by agent.py
+worker/.langsmith_run_url

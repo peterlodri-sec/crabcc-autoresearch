@@ -2,7 +2,7 @@ version: '3'
 
 vars:
   RUN_ID:
-    sh: echo "${RUN_ID:-run-$(date +%Y%m%d-%H%M)}"
+    sh: echo "${RUN_ID:-crabcc-run-$(date +%Y%m%d-%H%M)}"
 
 tasks:
   prepare:
@@ -11,35 +11,72 @@ tasks:
       - uv run python prepare.py
 
   run:
-    desc: Start the autonomous research loop (set RUN_ID, CRABCC_RECEIVER_URL, ANTHROPIC_API_KEY first)
+    desc: |
+      Run two autoresearch slots in parallel (lambda + charlm) under a single LangSmith trace.
+      Required env: RUN_ID, CRABCC_RECEIVER_URL, OPENROUTER_API_KEY, GITHUB_TOKEN
+      Optional env: BUDGET_USD, PROVIDER, LANGSMITH_API_KEY
     vars:
       GPU_TYPE:
         sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"
       GPU_COUNT:
         sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | wc -l | tr -d ' ' || echo "1"
     cmds:
-      - echo "Starting run {{.RUN_ID}} on {{.GPU_COUNT}}x {{.GPU_TYPE}} ({{.PROVIDER | default "unknown"}})"
+      - echo "Starting run {{.RUN_ID}} on {{.GPU_COUNT}}x {{.GPU_TYPE}} (${PROVIDER:-unknown})"
+      # Register both slot run_ids with the receiver
       - |
         uv run python -c "
         from telemetry import report_start
-        report_start(
-            run_id='{{.RUN_ID}}',
-            machine_type='{{.GPU_COUNT}}x {{.GPU_TYPE}}',
-            gpu_type='{{.GPU_TYPE}}',
-            provider='${PROVIDER:-unknown}',
-            budget_usd=float('${BUDGET_USD:-0}'),
-        )
+        base = '{{.RUN_ID}}'
+        for slot in ('lambda', 'charlm'):
+            report_start(
+                run_id=f'{base}-{slot}',
+                machine_type='{{.GPU_COUNT}}x {{.GPU_TYPE}}',
+                gpu_type='{{.GPU_TYPE}}',
+                provider='${PROVIDER:-unknown}',
+                budget_usd=float('${BUDGET_USD:-0}') / 2,
+            )
         "
-      - RUN_ID={{.RUN_ID}} uv run python main_loop.py
+      # Launch both slots in parallel via agent.py
+      - |
+        RUN_ID={{.RUN_ID}} \
+        GPU_TYPE="{{.GPU_TYPE}}" \
+        PROVIDER="${PROVIDER:-unknown}" \
+        BUDGET_USD="${BUDGET_USD:-0}" \
+        uv run python agent.py
+      # Seal both slot runs
       - |
         uv run python -c "
         from telemetry import report_end
-        report_end(run_id='{{.RUN_ID}}', total_cost_usd=float('${TOTAL_COST_USD:-0}'))
+        base = '{{.RUN_ID}}'
+        for slot in ('lambda', 'charlm'):
+            report_end(run_id=f'{base}-{slot}', total_cost_usd=float('${TOTAL_COST_USD:-0}') / 2)
         "
       - task publish RUN_ID={{.RUN_ID}} GPU_TYPE="{{.GPU_TYPE}}"
 
+  run-single:
+    desc: Run a single slot (SLOT=lambda or SLOT=charlm). Useful for debugging.
+    vars:
+      GPU_TYPE:
+        sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"
+    cmds:
+      - |
+        RUN_ID={{.RUN_ID}} \
+        GPU_TYPE="{{.GPU_TYPE}}" \
+        PROVIDER="${PROVIDER:-unknown}" \
+        BUDGET_USD="${BUDGET_USD:-0}" \
+        uv run python -c "
+        import agent, os
+        agent.run(
+            base_run_id=os.environ['RUN_ID'],
+            gpu_type=os.environ.get('GPU_TYPE', ''),
+            provider=os.environ.get('PROVIDER', ''),
+            budget_usd=float(os.environ.get('BUDGET_USD', '0')),
+            slots=['${SLOT:-lambda}'],
+        )
+        "
+
   publish:
-    desc: Push run artifacts (results.tsv, train.py, run_meta.json) to peterlodri-sec/research.crabcc.app (set GITHUB_TOKEN)
+    desc: Push all slot artifacts to peterlodri-sec/lambda-normalization-census (set GITHUB_TOKEN)
     vars:
       GPU_TYPE:
         sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"

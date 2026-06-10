@@ -40,6 +40,19 @@
       "type": "string",
       "format": "date-time",
       "description": "UTC timestamp when artifacts were pushed to the census repo."
+    },
+    "langsmith_run_url": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "LangSmith parent trace URL. Present only when LANGSMITH_API_KEY was set."
+    },
+    "digests": {
+      "type": "object",
+      "description": "SHA-256 hex digests of the published artifacts for integrity verification.",
+      "properties": {
+        "results.tsv": {"type": "string"},
+        "train.py": {"type": "string"}
+      }
     }
   }
 }
