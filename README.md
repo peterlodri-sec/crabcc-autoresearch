@@ -155,7 +155,9 @@ receiver/
   schema.sql               runs + run_sessions tables
   Taskfile.yml             serve · migrate · tail · sessions
 nix/
-  crabcc-research-sync.nix  drop-in systemd timer for nix-base
+  research-sync.nix         NixOS module: systemd rsync timer (slots → receiver)
+  receiver.nix              NixOS module: systemd service for the FastAPI receiver
+flake.nix                   publishable Nix flake (modules + devShell + checks)
 ```
 
 ---
@@ -195,26 +197,69 @@ Requires `GITHUB_TOKEN` env var with `contents: write` on that repo. `task run` 
 ## dev
 
 ```bash
-# receiver
-cd receiver && uv sync --dev && task test
+# zero-config dev shell (nix users)
+nix develop
 
-# worker
-cd worker && uv sync --dev && task test
+# or with uv directly
+cd receiver && uv sync --dev && task test
+cd worker   && uv sync --dev && task test
 ```
 
-CI runs `ruff check`, `ruff format --check`, and `pytest` for both components on every push.
+CI runs `ruff check`, `ruff format --check`, `pytest`, and `nix flake check` on every push.
 
 ---
 
 ## nix integration
 
-Copy `nix/crabcc-research-sync.nix` into `nix-base` and import in the host config:
+The repo ships a publishable Nix flake with two NixOS modules.
+
+**Consume as a flake input** (recommended):
 
 ```nix
-imports = [ ./crabcc-research-sync.nix ];
+# flake.nix
+inputs.crabcc.url = "github:peterlodri-sec/crabcc-autoresearch";
+
+# your NixOS host
+imports = [
+  inputs.crabcc.nixosModules.research-sync  # rsync timer
+  inputs.crabcc.nixosModules.receiver       # FastAPI receiver service
+];
+
+services.crabcc = {
+  researchSync = {
+    enable     = true;
+    workerHost = "vast-4090-worker";   # Tailscale hostname
+  };
+  receiver = {
+    enable   = true;
+    repoPath = "/opt/crabcc-autoresearch";
+  };
+};
 ```
 
-Syncs `results.tsv` from the gpu worker over Tailscale every 10 minutes as a backup artifact alongside the live SQLite telemetry.
+**Or copy directly into nix-base** (backwards-compatible path still works):
+
+```nix
+imports = [ ./nix/crabcc-research-sync.nix ];
+# → now an alias for ./nix/research-sync.nix
+```
+
+`nix develop` drops you into a shell with `uv`, `task`, and `gh` pre-loaded.
+
+---
+
+## use this as a template
+
+This repo is a [GitHub template](https://github.com/peterlodri-sec/crabcc-autoresearch/generate). Click **Use this template** to get:
+
+- Dual-slot autoresearch loop (task-specific + general benchmark running in parallel)
+- LangSmith parent trace across both slots
+- Frictionless Data + JSON Schema + Sigstore-signed dataset publishing
+- NixOS modules for receiver deployment and artifact sync
+- Publishable Nix flake with devShell + CI checks
+- Branch protection, issue/PR templates, labels, CITATION.cff, FINDINGS.md
+
+**To adapt it to a new research task:** replace `worker/programs/lambda_normalization.md` with your task description. Everything else (telemetry, publishing, CI) works unchanged.
 
 ---
 

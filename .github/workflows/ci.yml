@@ -37,3 +37,27 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -v
+
+  nix:
+    name: nix — fmt + flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v14
+
+      # Free binary cache — dramatically speeds up nixpkgs downloads
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      # Format check: run nixfmt, fail if any file changed
+      - name: nix fmt --check
+        run: |
+          nix fmt
+          git diff --exit-code -- '*.nix' || {
+            echo "Nix files need formatting. Run 'nix fmt' locally."
+            exit 1
+          }
+
+      # Evaluate modules + build dev shell (type errors surface here)
+      - name: nix flake check
+        run: nix flake check --all-systems --print-build-logs

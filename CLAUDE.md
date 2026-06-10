@@ -39,6 +39,17 @@ cd worker   && uv sync --dev && task test
 
 ## nix integration
 
+```bash
+nix develop        # dev shell with uv, task, gh
+nix flake check    # validate modules + devShell
+nix fmt            # format all .nix files
+```
+
 ```nix
-imports = [ ./nix/crabcc-research-sync.nix ];
+# as a flake input
+inputs.crabcc.nixosModules.research-sync  # rsync timer
+inputs.crabcc.nixosModules.receiver       # FastAPI receiver
+
+# or direct import (backwards-compat)
+imports = [ ./nix/research-sync.nix ];
 ```
