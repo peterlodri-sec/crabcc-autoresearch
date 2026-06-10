@@ -15,7 +15,7 @@ GITHUB_API = "https://api.github.com"
 BRANCH = "main"
 
 
-def _headers() -> dict:
+def _headers() -> dict[str, str]:
     token = os.environ.get("GITHUB_TOKEN", "")
     return {
         "Authorization": f"Bearer {token}",

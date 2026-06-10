@@ -12,7 +12,7 @@ You need four things before starting:
 | Item | Where to get it |
 |------|----------------|
 | Tailscale ephemeral auth key | https://login.tailscale.com/admin/settings/keys — create a key with "Ephemeral" checked |
-| Anthropic API key | https://console.anthropic.com |
+| OpenRouter API key | https://openrouter.ai/keys |
 | GitHub PAT | https://github.com/settings/tokens — fine-grained, `contents: write` on `peterlodri-sec/lambda-normalization-census` |
 | Hetzner VM with receiver running | See **Step 1** below |
 | Vast.ai account | https://vast.ai |
@@ -124,9 +124,10 @@ cd crabcc-autoresearch/worker
 Set your API key and receiver URL, then start:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENROUTER_API_KEY=sk-or-...                              # openrouter.ai key
+export LLM_MODEL=anthropic/claude-sonnet-4-6                     # optional — default is sonnet-4-6
 export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787   # from Step 1
-export GITHUB_TOKEN=github_pat_...                               # PAT with contents:write on research.crabcc.app
+export GITHUB_TOKEN=github_pat_...                               # PAT with contents:write on lambda-normalization-census
 export RUN_ID=crabcc-run-$(date +%Y%m%d-%H%M)
 export BUDGET_USD=12
 

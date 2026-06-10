@@ -24,6 +24,10 @@ git clone https://github.com/peterlodri-sec/crabcc-autoresearch.git
 cd crabcc-autoresearch/worker
 uv sync
 
+# --- patch autoresearch LLM client → OpenRouter ---
+# expects main_loop.py in cwd (copy from karpathy/autoresearch before running task run)
+uv run python patch_llm.py main_loop.py || true
+
 # --- auto-detect GPU info ---
 if command -v nvidia-smi &>/dev/null; then
   GPU_TYPE=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n')
@@ -47,7 +51,8 @@ echo "  Provider: ${PROVIDER}"
 echo "  Budget:   \$${BUDGET_USD}"
 echo ""
 echo "Next steps:"
-echo "  export ANTHROPIC_API_KEY=sk-ant-..."
+echo "  export OPENROUTER_API_KEY=sk-or-..."
+echo "  export LLM_MODEL=anthropic/claude-sonnet-4-6   # optional, this is the default"
 echo "  export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787"
 echo "  export RUN_ID=crabcc-run-001"
 echo "  task prepare   # one-time tokenizer build"

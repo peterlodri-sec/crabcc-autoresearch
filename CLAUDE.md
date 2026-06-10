@@ -12,7 +12,8 @@ cd receiver && task serve
 
 ## Quick start (GPU worker)
 export TS_AUTHKEY=tskey-auth-...
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENROUTER_API_KEY=sk-or-...
+export LLM_MODEL=anthropic/claude-sonnet-4-6
 export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787
 export RUN_ID=crabcc-run-001
 cd worker && task run

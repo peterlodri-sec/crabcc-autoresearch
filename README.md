@@ -42,7 +42,8 @@ See [`deploy.md`](deploy.md) for the full step-by-step. Short version:
 
 ```bash
 # on the gpu worker (after cloud-init)
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENROUTER_API_KEY=sk-or-...
+export LLM_MODEL=anthropic/claude-sonnet-4-6   # optional
 export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787
 export RUN_ID=crabcc-run-001
 export BUDGET_USD=12
