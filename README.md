@@ -112,6 +112,30 @@ open reproducible ML experiments at this granularity are scarce — full artifac
 
 ---
 
+**stretch goal: $5,000/month → research-grade**
+
+At 10× the nightly threshold the loop shifts from solo-researcher to small-lab scale. The key change is GPU class — A100/H100 (80 GB VRAM) vs RTX 4090 (24 GB) — which unlocks model sizes that can learn structural inductive biases about λ-reduction rather than surface patterns.
+
+| at scale | per night | per month | per year |
+|----------|-----------|-----------|----------|
+| gpu (A100 / H100 80 GB) | ~$16–40 | ~$480–1,200 | ~$5,760–14,400 |
+| llm (sonnet + caching) | ~$12–16 | ~$360–480 | ~$4,320–5,760 |
+| **total** | **~$28–56** | **~$840–1,680** | **~$10,000–20,000** |
+| parallel architectures / night | 4–8 | — | — |
+| training experiments / month | 5,000+ | — | — |
+| max model scale | 7B+ params | — | — |
+
+what $5k unlocks:
+
+- **parallel architecture search** — run 4–8 candidate `train.py` mutations simultaneously each night; the autoresearch LLM converges on the best design in weeks not years
+- **7B-class models** — 80 GB VRAM opens transformer scales that can plausibly learn deep structural patterns in λ-term reduction sequences, not just token statistics
+- **decidability horizon push** — a heuristic with meaningfully better accuracy above n > 20 (where exact enumeration is intractable) would be a novel result usable in proof assistants and type-checkers
+- **publishable dataset** — ~60,000+ training experiments/year with full cost + metric provenance; sufficient for a formal-methods or ML workshop ablation study
+
+**usefulness at $5k/month: 4.5/5** — the gap to 5/5 closes when a finding clears peer review; the infrastructure and reproducibility are already there.
+
+---
+
 ## repo layout
 
 ```
