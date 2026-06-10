@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  migrate:
+    desc: Initialize / migrate DB schema
+    cmds:
+      - uv run python -c "from main import migrate; migrate()"
+
+  serve:
+    desc: Start receiver on port 8787 (accessible over Tailscale)
+    cmds:
+      - uv run uvicorn main:app --host 0.0.0.0 --port 8787
+    env:
+      CRABCC_DB: '{{.CRABCC_DB | default "/var/lib/crabcc-research/runs.db"}}'
+
+  test:
+    desc: Run API tests
+    cmds:
+      - uv run pytest -v
+
+  tail:
+    desc: "Show last 20 steps for a run  (usage: task tail RUN_ID=my-run)"
+    cmds:
+      - >
+        sqlite3 "${CRABCC_DB:-/var/lib/crabcc-research/runs.db}"
+        "SELECT run_id, step, val_bpb, status, api_cost_usd, ts
+         FROM runs WHERE run_id='{{.RUN_ID}}'
+         ORDER BY step DESC LIMIT 20"
+    requires:
+      vars: [RUN_ID]
+
+  sessions:
+    desc: List last 10 run sessions with cost summary
+    cmds:
+      - >
+        sqlite3 "${CRABCC_DB:-/var/lib/crabcc-research/runs.db}"
+        "SELECT run_id, gpu_type, provider, budget_usd, total_cost_usd, started_at, ended_at
+         FROM run_sessions ORDER BY started_at DESC LIMIT 10"
