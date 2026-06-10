@@ -3,6 +3,10 @@ version: '3'
 vars:
   RUN_ID:
     sh: echo "${RUN_ID:-crabcc-run-$(date +%Y%m%d-%H%M)}"
+  # Maximum wall-clock hours. Slots are terminated at the deadline and
+  # artifacts are published automatically. Supported values: 6, 8, 10.
+  RUN_HOURS:
+    sh: echo "${RUN_HOURS:-8}"
 
 tasks:
   prepare:
@@ -14,14 +18,15 @@ tasks:
     desc: |
       Run two autoresearch slots in parallel (lambda + charlm) under a single LangSmith trace.
       Required env: RUN_ID, CRABCC_RECEIVER_URL, OPENROUTER_API_KEY, GITHUB_TOKEN
-      Optional env: BUDGET_USD, PROVIDER, LANGSMITH_API_KEY
+      Optional env: BUDGET_USD, PROVIDER, RUN_HOURS (default 8), LANGSMITH_API_KEY
+                    VAST_INSTANCE_ID + VASTAI_API_KEY (enables auto-destroy after publish)
     vars:
       GPU_TYPE:
         sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"
       GPU_COUNT:
         sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | wc -l | tr -d ' ' || echo "1"
     cmds:
-      - echo "Starting run {{.RUN_ID}} on {{.GPU_COUNT}}x {{.GPU_TYPE}} (${PROVIDER:-unknown})"
+      - echo "Starting run {{.RUN_ID}} on {{.GPU_COUNT}}x {{.GPU_TYPE}} — limit {{.RUN_HOURS}}h (${PROVIDER:-unknown})"
       # Register both slot run_ids with the receiver
       - |
         uv run python -c "
@@ -36,12 +41,13 @@ tasks:
                 budget_usd=float('${BUDGET_USD:-0}') / 2,
             )
         "
-      # Launch both slots in parallel via agent.py
+      # Launch both slots in parallel — agent.py enforces the RUN_HOURS deadline
       - |
         RUN_ID={{.RUN_ID}} \
         GPU_TYPE="{{.GPU_TYPE}}" \
         PROVIDER="${PROVIDER:-unknown}" \
         BUDGET_USD="${BUDGET_USD:-0}" \
+        RUN_HOURS={{.RUN_HOURS}} \
         uv run python agent.py
       # Seal both slot runs
       - |
@@ -51,7 +57,20 @@ tasks:
         for slot in ('lambda', 'charlm'):
             report_end(run_id=f'{base}-{slot}', total_cost_usd=float('${TOTAL_COST_USD:-0}') / 2)
         "
-      - task publish RUN_ID={{.RUN_ID}} GPU_TYPE="{{.GPU_TYPE}}"
+      # Publish artifacts (both slots)
+      - task: publish
+        vars:
+          RUN_ID: "{{.RUN_ID}}"
+          GPU_TYPE: "{{.GPU_TYPE}}"
+      # Auto-destroy Vast.ai instance if credentials were provided
+      - |
+        if [ -n "${VAST_INSTANCE_ID:-}" ] && [ -n "${VASTAI_API_KEY:-}" ]; then
+          echo "Destroying instance ${VAST_INSTANCE_ID}..."
+          curl -sf -X DELETE \
+            "https://console.vast.ai/api/v0/instances/${VAST_INSTANCE_ID}/?api_key=${VASTAI_API_KEY}" \
+            -o /dev/null && echo "Instance destroyed — billing stopped." \
+            || echo "Warning: destroy call failed — check vast.ai console." >&2
+        fi
 
   run-single:
     desc: Run a single slot (SLOT=lambda or SLOT=charlm). Useful for debugging.
@@ -64,6 +83,7 @@ tasks:
         GPU_TYPE="{{.GPU_TYPE}}" \
         PROVIDER="${PROVIDER:-unknown}" \
         BUDGET_USD="${BUDGET_USD:-0}" \
+        RUN_HOURS={{.RUN_HOURS}} \
         uv run python -c "
         import agent, os
         agent.run(
@@ -71,6 +91,7 @@ tasks:
             gpu_type=os.environ.get('GPU_TYPE', ''),
             provider=os.environ.get('PROVIDER', ''),
             budget_usd=float(os.environ.get('BUDGET_USD', '0')),
+            run_hours=float(os.environ.get('RUN_HOURS', '8')),
             slots=['${SLOT:-lambda}'],
         )
         "

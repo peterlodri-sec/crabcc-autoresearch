@@ -7,6 +7,10 @@ set -euo pipefail
 export TS_AUTHKEY="${TS_AUTHKEY:?TS_AUTHKEY env var required}"
 PROVIDER="${PROVIDER:-unknown}"
 BUDGET_USD="${BUDGET_USD:-0}"
+RUN_HOURS="${RUN_HOURS:-8}"
+# Pass VAST_INSTANCE_ID + VASTAI_API_KEY to enable auto-destroy after publish
+VAST_INSTANCE_ID="${VAST_INSTANCE_ID:-}"
+VASTAI_API_KEY="${VASTAI_API_KEY:-}"
 
 # --- Tailscale ---
 curl -fsSL https://tailscale.com/install.sh | sh
@@ -59,7 +63,7 @@ else
   GPU_COUNT="1"
 fi
 
-export GPU_TYPE GPU_COUNT PROVIDER BUDGET_USD
+export GPU_TYPE GPU_COUNT PROVIDER BUDGET_USD RUN_HOURS VAST_INSTANCE_ID VASTAI_API_KEY
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -75,10 +79,15 @@ echo "  export OPENROUTER_API_KEY=sk-or-..."
 echo "  export GITHUB_TOKEN=github_pat_..."
 echo "  export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787"
 echo "  export RUN_ID=crabcc-run-\$(date +%Y%m%d-%H%M)"
+echo "  export RUN_HOURS=6            # 6 | 8 | 10 — auto-stops + publishes at limit"
+echo ""
+echo "  # auto-destroy instance when run completes (recommended)"
+echo "  export VAST_INSTANCE_ID=<id>  # from: vastai show instances"
+echo "  export VASTAI_API_KEY=<key>"
 echo ""
 echo "  # optional"
 echo "  export LLM_MODEL=anthropic/claude-sonnet-4-6"
 echo "  export LANGSMITH_API_KEY=ls__..."
 echo ""
 echo "  task prepare   # one-time tokenizer build (~2 min)"
-echo "  task run       # launches both slots in parallel"
+echo "  task run       # launches both slots, stops at RUN_HOURS, publishes + destroys"
