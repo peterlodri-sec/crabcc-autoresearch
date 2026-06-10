@@ -36,6 +36,21 @@ tasks:
         from telemetry import report_end
         report_end(run_id='{{.RUN_ID}}', total_cost_usd=float('${TOTAL_COST_USD:-0}'))
         "
+      - task publish RUN_ID={{.RUN_ID}} GPU_TYPE="{{.GPU_TYPE}}"
+
+  publish:
+    desc: Push run artifacts (results.tsv, train.py, run_meta.json) to peterlodri-sec/research.crabcc.app (set GITHUB_TOKEN)
+    vars:
+      GPU_TYPE:
+        sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"
+    cmds:
+      - |
+        RUN_ID={{.RUN_ID}} \
+        GPU_TYPE="{{.GPU_TYPE}}" \
+        PROVIDER="${PROVIDER:-unknown}" \
+        BUDGET_USD="${BUDGET_USD:-0}" \
+        TOTAL_COST_USD="${TOTAL_COST_USD:-0}" \
+        uv run python push_dataset.py
 
   test:
     desc: Run worker unit tests

@@ -90,8 +90,9 @@ Swap in Haiku for mutations → total drops under $5.
 deploy.md                  step-by-step vast.ai guide
 worker/
   telemetry.py             report_start / report_run / report_end
+  push_dataset.py          push run artifacts to research.crabcc.app repo
   cloud-init.sh            tailscale + uv + nvidia-smi auto-detect
-  Taskfile.yml             prepare · run · test
+  Taskfile.yml             prepare · run · publish · test
   program.md               baseline research constraints
 receiver/
   main.py                  post /api/telemetry, /api/runs/start|end,
@@ -118,6 +119,21 @@ GET  /health            → {"ok":true}
 ```
 
 All writes travel over the Tailscale mesh. No public write endpoint.
+
+---
+
+## dataset archive
+
+After each run, `task publish` pushes three files to `peterlodri-sec/research.crabcc.app`:
+
+```
+datasets/autoresearch-YYYYMMDD-HHMM/
+  results.tsv      autoresearch native step log
+  train.py         final best model code
+  run_meta.json    {run_id, gpu_type, provider, budget_usd, total_cost_usd, best_val_bpb}
+```
+
+Requires `GITHUB_TOKEN` env var with `contents: write` on that repo. `task run` calls `task publish` automatically — no manual step needed.
 
 ---
 
