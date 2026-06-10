@@ -1,5 +1,9 @@
 # crabcc-autoresearch
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/peterlodri-sec/crabcc-autoresearch/actions/workflows/ci.yml/badge.svg)](https://github.com/peterlodri-sec/crabcc-autoresearch/actions/workflows/ci.yml)
+[![Sponsor](https://img.shields.io/github/sponsors/peterlodri-sec?label=Sponsor&logo=githubsponsors&color=ea4aaa)](https://github.com/sponsors/peterlodri-sec)
+
 > autonomous ml research loop — headless, cost-transparent, 8 hours unattended
 
 The compute harness for the [`lambda-normalization-census`](https://github.com/peterlodri-sec/lambda-normalization-census) research project. Runs Karpathy's [`autoresearch`](https://github.com/karpathy/autoresearch) loop on an ephemeral GPU spot instance to train a small transformer that classifies λ-term normalization status (**SN** / **SEP** / **NWN** / **UND**). Every 5-minute cycle proposes a mutation to `train.py`, trains it, and reports `val_bpb` + cost back to a FastAPI receiver on Hetzner over Tailscale.
