@@ -1,0 +1,43 @@
+version: '3'
+
+vars:
+  RUN_ID:
+    sh: echo "${RUN_ID:-run-$(date +%Y%m%d-%H%M)}"
+
+tasks:
+  prepare:
+    desc: One-time tokenizer build (run before first loop)
+    cmds:
+      - uv run python prepare.py
+
+  run:
+    desc: Start the autonomous research loop (set RUN_ID, CRABCC_RECEIVER_URL, ANTHROPIC_API_KEY first)
+    vars:
+      GPU_TYPE:
+        sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -d '\r\n' || echo "unknown"
+      GPU_COUNT:
+        sh: command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader | wc -l | tr -d ' ' || echo "1"
+    cmds:
+      - echo "Starting run {{.RUN_ID}} on {{.GPU_COUNT}}x {{.GPU_TYPE}} ({{.PROVIDER | default "unknown"}})"
+      - |
+        uv run python -c "
+        from telemetry import report_start
+        report_start(
+            run_id='{{.RUN_ID}}',
+            machine_type='{{.GPU_COUNT}}x {{.GPU_TYPE}}',
+            gpu_type='{{.GPU_TYPE}}',
+            provider='${PROVIDER:-unknown}',
+            budget_usd=float('${BUDGET_USD:-0}'),
+        )
+        "
+      - RUN_ID={{.RUN_ID}} uv run python main_loop.py
+      - |
+        uv run python -c "
+        from telemetry import report_end
+        report_end(run_id='{{.RUN_ID}}', total_cost_usd=float('${TOTAL_COST_USD:-0}'))
+        "
+
+  test:
+    desc: Run worker unit tests
+    cmds:
+      - uv run pytest -v
