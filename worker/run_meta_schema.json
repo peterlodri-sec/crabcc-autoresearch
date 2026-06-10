@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/peterlodri-sec/crabcc-autoresearch/worker/run_meta_schema.json",
+  "title": "run_meta",
+  "description": "Metadata for a single crabcc-autoresearch run, archived to lambda-normalization-census.",
+  "type": "object",
+  "required": ["run_id", "gpu_type", "provider", "budget_usd", "total_cost_usd", "published_at"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Unique run identifier.",
+      "examples": ["crabcc-run-20260610-1400"]
+    },
+    "gpu_type": {
+      "type": "string",
+      "description": "GPU model as reported by nvidia-smi.",
+      "examples": ["NVIDIA GeForce RTX 4090"]
+    },
+    "provider": {
+      "type": "string",
+      "description": "Compute provider.",
+      "examples": ["vast.ai", "runpod"]
+    },
+    "budget_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Cost ceiling set before the run."
+    },
+    "total_cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Actual total cost (GPU + LLM API) at run end."
+    },
+    "best_val_bpb": {
+      "type": ["number", "null"],
+      "description": "Minimum val_bpb achieved across all steps. Null if no successful step."
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when artifacts were pushed to the census repo."
+    }
+  }
+}

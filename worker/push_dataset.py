@@ -100,6 +100,7 @@ def _push(
     results_content = _read_artifact(results_tsv_path, "# no results.tsv found\n")
     train_content = _read_artifact(train_py_path, "# no train.py found\n")
     meta = {
+        "$schema": "https://github.com/peterlodri-sec/crabcc-autoresearch/blob/main/worker/run_meta_schema.json",
         "run_id": run_id,
         "gpu_type": gpu_type,
         "provider": provider,
