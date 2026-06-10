@@ -3,6 +3,7 @@ import os
 import pathlib
 import sqlite3
 from contextlib import contextmanager
+from html import escape
 from typing import Optional
 
 from fastapi import FastAPI
@@ -77,8 +78,9 @@ def dashboard():
             "SELECT * FROM runs ORDER BY ts DESC LIMIT 200"
         ).fetchall()
     rows_html = "".join(
-        f"<tr><td>{r['run_id']}</td><td>{r['step']}</td>"
-        f"<td>{r['val_bpb']}</td><td>{r['status']}</td><td>{r['ts']}</td></tr>"
+        f"<tr><td>{escape(str(r['run_id']))}</td><td>{escape(str(r['step']))}</td>"
+        f"<td>{escape(str(r['val_bpb']))}</td><td>{escape(str(r['status']))}</td>"
+        f"<td>{escape(str(r['ts']))}</td></tr>"
         for r in rows
     )
     return f"""<!DOCTYPE html>
