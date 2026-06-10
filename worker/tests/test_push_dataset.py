@@ -68,7 +68,7 @@ def test_push_dataset_dir_prefix_pattern():
         tree_call = [c for c in mock_post.call_args_list if "trees" in str(c)][0]
         tree_items = tree_call.kwargs["json"]["tree"]
         paths = [item["path"] for item in tree_items]
-        assert any(p.startswith("datasets/autoresearch-") for p in paths)
+        assert any(p.startswith("data/autoresearch/autoresearch-") for p in paths)
         assert any(p.endswith("results.tsv") for p in paths)
         assert any(p.endswith("train.py") for p in paths)
         assert any(p.endswith("run_meta.json") for p in paths)

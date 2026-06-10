@@ -124,10 +124,10 @@ All writes travel over the Tailscale mesh. No public write endpoint.
 
 ## dataset archive
 
-After each run, `task publish` pushes three files to `peterlodri-sec/research.crabcc.app`:
+After each run, `task publish` pushes three files to `peterlodri-sec/lambda-normalization-census`:
 
 ```
-datasets/autoresearch-YYYYMMDD-HHMM/
+data/autoresearch/autoresearch-YYYYMMDD-HHMM/
   results.tsv      autoresearch native step log
   train.py         final best model code
   run_meta.json    {run_id, gpu_type, provider, budget_usd, total_cost_usd, best_val_bpb}

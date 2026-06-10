@@ -13,7 +13,7 @@ You need four things before starting:
 |------|----------------|
 | Tailscale ephemeral auth key | https://login.tailscale.com/admin/settings/keys — create a key with "Ephemeral" checked |
 | Anthropic API key | https://console.anthropic.com |
-| GitHub PAT | https://github.com/settings/tokens — fine-grained, `contents: write` on `peterlodri-sec/research.crabcc.app` |
+| GitHub PAT | https://github.com/settings/tokens — fine-grained, `contents: write` on `peterlodri-sec/lambda-normalization-census` |
 | Hetzner VM with receiver running | See **Step 1** below |
 | Vast.ai account | https://vast.ai |
 
@@ -134,7 +134,7 @@ task prepare   # one-time tokenizer build (~2 min)
 task run       # starts the autonomous loop
 ```
 
-`task run` automatically calls `report_start` before the loop, `report_end` when it finishes, and `task publish` to archive the run artifacts to `peterlodri-sec/research.crabcc.app` under `datasets/autoresearch-{YYYYMMDD-HHMM}/`. No extra steps needed. If `GITHUB_TOKEN` is not set, the publish step prints a warning and continues.
+`task run` automatically calls `report_start` before the loop, `report_end` when it finishes, and `task publish` to archive the run artifacts to `peterlodri-sec/lambda-normalization-census` under `datasets/autoresearch-{YYYYMMDD-HHMM}/`. No extra steps needed. If `GITHUB_TOKEN` is not set, the publish step prints a warning and continues.
 
 ---
 

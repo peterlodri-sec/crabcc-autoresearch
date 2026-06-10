@@ -8,7 +8,9 @@ from typing import Optional
 
 import requests
 
-DATASETS_REPO = os.environ.get("DATASETS_REPO", "peterlodri-sec/research.crabcc.app")
+DATASETS_REPO = os.environ.get(
+    "DATASETS_REPO", "peterlodri-sec/lambda-normalization-census"
+)
 GITHUB_API = "https://api.github.com"
 BRANCH = "main"
 
@@ -90,7 +92,7 @@ def _push(
 ) -> None:
     now = datetime.now(timezone.utc)
     date_tag = now.strftime("%Y%m%d-%H%M")
-    dir_prefix = f"datasets/autoresearch-{date_tag}"
+    dir_prefix = f"data/autoresearch/autoresearch-{date_tag}"
     headers = _headers()
     repo = DATASETS_REPO
     api = GITHUB_API
