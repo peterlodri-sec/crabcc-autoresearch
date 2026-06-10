@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from html import escape
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -31,17 +31,22 @@ def migrate():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_db() as conn:
         conn.executescript(SCHEMA.read_text())
+        # idempotent column migration for existing DBs
+        try:
+            conn.execute("ALTER TABLE runs ADD COLUMN api_cost_usd REAL DEFAULT 0.0")
+        except Exception:
+            pass  # column already exists
 
 
-# Run migration eagerly at import time so TestClient (no lifespan) also works
 migrate()
 
 
 @app.on_event("startup")
-def startup():
-    # Idempotent: schema uses CREATE TABLE IF NOT EXISTS
+def _startup_migrate():
     migrate()
 
+
+# --- Models ---
 
 class RunEvent(BaseModel):
     run_id: str
@@ -49,15 +54,56 @@ class RunEvent(BaseModel):
     val_bpb: Optional[float] = None
     status: str
     diff: str = ""
+    api_cost_usd: float = 0.0
 
+
+class RunStart(BaseModel):
+    run_id: str
+    machine_type: str = ""
+    gpu_type: str = ""
+    provider: str = ""
+    budget_usd: float = 0.0
+
+
+class RunEnd(BaseModel):
+    run_id: str
+    total_cost_usd: float = 0.0
+
+
+# --- Routes ---
 
 @app.post("/api/telemetry", status_code=200)
 def ingest(event: RunEvent):
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO runs (run_id, step, val_bpb, status, diff) VALUES (?, ?, ?, ?, ?)",
-            (event.run_id, event.step, event.val_bpb, event.status, event.diff),
+            "INSERT INTO runs (run_id, step, val_bpb, status, diff, api_cost_usd) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (event.run_id, event.step, event.val_bpb, event.status, event.diff, event.api_cost_usd),
         )
+    return {"ok": True}
+
+
+@app.post("/api/runs/start", status_code=200)
+def run_start(body: RunStart):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO run_sessions (run_id, machine_type, gpu_type, provider, budget_usd) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (body.run_id, body.machine_type, body.gpu_type, body.provider, body.budget_usd),
+        )
+    return {"ok": True}
+
+
+@app.post("/api/runs/end", status_code=200)
+def run_end(body: RunEnd):
+    with get_db() as conn:
+        updated = conn.execute(
+            "UPDATE run_sessions SET ended_at = CURRENT_TIMESTAMP, total_cost_usd = ? "
+            "WHERE run_id = ?",
+            (body.total_cost_usd, body.run_id),
+        ).rowcount
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="run_id not found")
     return {"ok": True}
 
 
@@ -71,28 +117,78 @@ def get_run(run_id: str):
     return [dict(r) for r in rows]
 
 
+@app.get("/api/sessions")
+def list_sessions():
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM run_sessions ORDER BY started_at DESC LIMIT 50"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     with get_db() as conn:
-        rows = conn.execute(
+        sessions = conn.execute(
+            "SELECT * FROM run_sessions ORDER BY started_at DESC LIMIT 50"
+        ).fetchall()
+        steps = conn.execute(
             "SELECT * FROM runs ORDER BY ts DESC LIMIT 200"
         ).fetchall()
-    rows_html = "".join(
-        f"<tr><td>{escape(str(r['run_id']))}</td><td>{escape(str(r['step']))}</td>"
-        f"<td>{escape(str(r['val_bpb']))}</td><td>{escape(str(r['status']))}</td>"
-        f"<td>{escape(str(r['ts']))}</td></tr>"
-        for r in rows
+
+    session_rows = "".join(
+        f"<tr>"
+        f"<td>{escape(str(s['run_id']))}</td>"
+        f"<td>{escape(str(s['gpu_type']))} ({escape(str(s['provider']))})</td>"
+        f"<td>{escape(str(s['machine_type']))}</td>"
+        f"<td>${escape(str(round(s['budget_usd'], 4)))}</td>"
+        f"<td>${escape(str(round(s['total_cost_usd'] or 0, 4)))}</td>"
+        f"<td>{escape(str(s['started_at']))}</td>"
+        f"<td>{escape(str(s['ended_at'] or '—'))}</td>"
+        f"</tr>"
+        for s in sessions
     )
+
+    step_rows = "".join(
+        f"<tr>"
+        f"<td>{escape(str(r['run_id']))}</td>"
+        f"<td>{escape(str(r['step']))}</td>"
+        f"<td>{escape(str(r['val_bpb']))}</td>"
+        f"<td>{escape(str(r['status']))}</td>"
+        f"<td>${escape(str(round(r['api_cost_usd'] or 0, 4)))}</td>"
+        f"<td>{escape(str(r['ts']))}</td>"
+        f"</tr>"
+        for r in steps
+    )
+
     return f"""<!DOCTYPE html>
 <html>
 <head><title>crabcc research</title>
-<style>body{{font-family:monospace;padding:2rem}}table{{border-collapse:collapse;width:100%}}
-td,th{{border:1px solid #ccc;padding:.4rem .8rem}}th{{background:#f5f5f5}}</style>
+<style>
+  body{{font-family:monospace;padding:2rem;max-width:1400px;margin:0 auto}}
+  h2{{margin-top:2rem}}
+  table{{border-collapse:collapse;width:100%;margin-bottom:2rem}}
+  td,th{{border:1px solid #ccc;padding:.4rem .8rem;text-align:left}}
+  th{{background:#f5f5f5}}
+</style>
 </head>
 <body>
-<h1>autoresearch runs</h1>
+<h1>crabcc autoresearch</h1>
+
+<h2>Run Sessions</h2>
 <table>
-<thead><tr><th>run_id</th><th>step</th><th>val_bpb</th><th>status</th><th>ts</th></tr></thead>
-<tbody>{rows_html}</tbody>
+<thead><tr>
+  <th>run_id</th><th>GPU (provider)</th><th>machine</th>
+  <th>budget</th><th>actual cost</th><th>started</th><th>ended</th>
+</tr></thead>
+<tbody>{session_rows}</tbody>
+</table>
+
+<h2>Step Log</h2>
+<table>
+<thead><tr>
+  <th>run_id</th><th>step</th><th>val_bpb</th><th>status</th><th>step cost</th><th>ts</th>
+</tr></thead>
+<tbody>{step_rows}</tbody>
 </table>
 </body></html>"""
