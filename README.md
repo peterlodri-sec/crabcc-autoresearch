@@ -1,10 +1,10 @@
 # crabcc-autoresearch
 
-> autonomous ml training loop — headless, cost-transparent, 8 hours unattended
+> autonomous ml research loop — headless, cost-transparent, 8 hours unattended
 
-Runs Karpathy's [`autoresearch`](https://github.com/karpathy/autoresearch) loop on an ephemeral GPU spot instance. Every 5-minute training cycle reports validation loss, API cost, and status back to a FastAPI receiver on your Hetzner VM over Tailscale. No babysitting. Full cost transparency. Results visible at `research.crabcc.app`.
+The compute harness for the [`lambda-normalization-census`](https://github.com/peterlodri-sec/lambda-normalization-census) research project. Runs Karpathy's [`autoresearch`](https://github.com/karpathy/autoresearch) loop on an ephemeral GPU spot instance to train a small transformer that classifies λ-term normalization status (**SN** / **SEP** / **NWN** / **UND**). Every 5-minute cycle proposes a mutation to `train.py`, trains it, and reports `val_bpb` + cost back to a FastAPI receiver on Hetzner over Tailscale.
 
-**context:** this repo is the *compute harness* for the [`lambda-normalization-census`](https://github.com/peterlodri-sec/lambda-normalization-census) public research project — an open dataset on the normalization geometry of the untyped λ-calculus. each completed run automatically archives its artifacts (`results.tsv`, final `train.py`, cost + metric summary) into `data/autoresearch/` in that repo, extending the public dataset without manual intervention.
+Each completed run archives its artifacts automatically into `data/autoresearch/` in the census repo — extending the public dataset without manual intervention. Findings are curated in [`FINDINGS.md`](FINDINGS.md).
 
 ---
 
@@ -78,11 +78,33 @@ Typical 8-hour RTX 4090 run on Vast.ai:
 
 | line item | estimate |
 |-----------|----------|
-| gpu compute (~$0.40/hr × 8h) | $3.20 |
-| anthropic api (~96 iterations × 12k tokens) | ~$5.60 |
-| **total** | **~$8–10** |
+| gpu compute (~$0.40/hr × 8h) | ~$3.20 |
+| openrouter — sonnet + prompt caching | ~$3–4 |
+| **total** | **~$6–8** |
 
-Swap in Haiku for mutations → total drops under $5.
+Prompt caching via OpenRouter cuts input token cost ~60–80% on the static `train.py` prefix. Swap model to DeepSeek-V3 via `LLM_MODEL` to halve the LLM cost further.
+
+---
+
+## roadmap
+
+**sponsor goal: $500/month → nightly automation**
+
+Once the [`lambda-normalization-census`](https://github.com/peterlodri-sec/lambda-normalization-census) hits its $500/month sponsorship threshold, the loop runs every night unattended:
+
+| at scale | per night | per month | per year |
+|----------|-----------|-----------|----------|
+| gpu compute | ~$3.20 | ~$96 | ~$1,150 |
+| llm (sonnet + caching) | ~$3–4 | ~$90–120 | ~$1,080–1,440 |
+| **total** | **~$6–8** | **~$186–216** | **~$2,230–2,590** |
+| training experiments | ~96 | ~2,880 | ~34,560 |
+
+**why this matters:**
+
+A learned normalization classifier that generalises beyond the decidability horizon (n>16, where exact enumeration is intractable) would be a genuine research contribution — useful for type-checkers, proof assistants, and anyone reasoning about λ-calculus reduction. The loop finds the architecture and training recipe; the census provides the data; [`FINDINGS.md`](FINDINGS.md) tracks what it discovers.
+
+**usefulness to the public / ai research community: 4/5**  
+open reproducible ML experiments at this granularity are scarce — full artifact trail, cost metadata, and a task that directly advances a published open dataset. the gap to 5/5 is frontier scale; this is solo-researcher scale compute doing targeted theory-adjacent work.
 
 ---
 
@@ -90,13 +112,15 @@ Swap in Haiku for mutations → total drops under $5.
 
 ```
 .github/workflows/ci.yml   ruff + pytest on push + pr
+FINDINGS.md                curated discoveries across nightly runs
 deploy.md                  step-by-step vast.ai guide
 worker/
   telemetry.py             report_start / report_run / report_end
-  push_dataset.py          push run artifacts to research.crabcc.app repo
+  push_dataset.py          push run artifacts to lambda-normalization-census
+  patch_llm.py             patches autoresearch → openrouter + langsmith
   cloud-init.sh            tailscale + uv + nvidia-smi auto-detect
   Taskfile.yml             prepare · run · publish · test
-  program.md               baseline research constraints
+  program.md               research task: λ-term normalization classifier
 receiver/
   main.py                  post /api/telemetry, /api/runs/start|end,
                            get /health, /api/sessions, /api/runs/{id}, /
