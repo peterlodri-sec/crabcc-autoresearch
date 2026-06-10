@@ -48,6 +48,7 @@ def _startup_migrate():
 
 # --- Models ---
 
+
 class RunEvent(BaseModel):
     run_id: str
     step: int
@@ -72,13 +73,21 @@ class RunEnd(BaseModel):
 
 # --- Routes ---
 
+
 @app.post("/api/telemetry", status_code=200)
 def ingest(event: RunEvent):
     with get_db() as conn:
         conn.execute(
             "INSERT INTO runs (run_id, step, val_bpb, status, diff, api_cost_usd) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            (event.run_id, event.step, event.val_bpb, event.status, event.diff, event.api_cost_usd),
+            (
+                event.run_id,
+                event.step,
+                event.val_bpb,
+                event.status,
+                event.diff,
+                event.api_cost_usd,
+            ),
         )
     return {"ok": True}
 
@@ -89,7 +98,13 @@ def run_start(body: RunStart):
         conn.execute(
             "INSERT INTO run_sessions (run_id, machine_type, gpu_type, provider, budget_usd) "
             "VALUES (?, ?, ?, ?, ?)",
-            (body.run_id, body.machine_type, body.gpu_type, body.provider, body.budget_usd),
+            (
+                body.run_id,
+                body.machine_type,
+                body.gpu_type,
+                body.provider,
+                body.budget_usd,
+            ),
         )
     return {"ok": True}
 
@@ -151,9 +166,7 @@ def dashboard():
             LIMIT 50
             """,
         ).fetchall()
-        steps = conn.execute(
-            "SELECT * FROM runs ORDER BY ts DESC LIMIT 200"
-        ).fetchall()
+        steps = conn.execute("SELECT * FROM runs ORDER BY ts DESC LIMIT 200").fetchall()
 
     session_rows = "".join(
         f"<tr>"

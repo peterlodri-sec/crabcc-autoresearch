@@ -40,6 +40,7 @@ def test_report_run_silent_on_connection_error():
 
 def test_report_run_silent_on_timeout():
     import requests as req_lib
+
     with patch("telemetry.requests.post", side_effect=req_lib.Timeout("timed out")):
         report_run("run-timeout", 3, 1.5, "SUCCESS")  # must not raise
 

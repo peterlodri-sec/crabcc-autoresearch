@@ -21,13 +21,16 @@ def report_start(
     provider: str = "",
     budget_usd: float = 0.0,
 ) -> None:
-    _post("/api/runs/start", {
-        "run_id": run_id,
-        "machine_type": machine_type,
-        "gpu_type": gpu_type,
-        "provider": provider,
-        "budget_usd": budget_usd,
-    })
+    _post(
+        "/api/runs/start",
+        {
+            "run_id": run_id,
+            "machine_type": machine_type,
+            "gpu_type": gpu_type,
+            "provider": provider,
+            "budget_usd": budget_usd,
+        },
+    )
 
 
 def report_run(
@@ -38,21 +41,27 @@ def report_run(
     diff: str = "",
     api_cost_usd: float = 0.0,
 ) -> None:
-    _post("/api/telemetry", {
-        "run_id": run_id,
-        "step": int(step),
-        "val_bpb": float(val_bpb) if val_bpb is not None else None,
-        "status": status,
-        "diff": diff,
-        "api_cost_usd": api_cost_usd,
-    })
+    _post(
+        "/api/telemetry",
+        {
+            "run_id": run_id,
+            "step": int(step),
+            "val_bpb": float(val_bpb) if val_bpb is not None else None,
+            "status": status,
+            "diff": diff,
+            "api_cost_usd": api_cost_usd,
+        },
+    )
 
 
 def report_end(run_id: str, total_cost_usd: float = 0.0) -> None:
-    _post("/api/runs/end", {
-        "run_id": run_id,
-        "total_cost_usd": total_cost_usd,
-    })
+    _post(
+        "/api/runs/end",
+        {
+            "run_id": run_id,
+            "total_cost_usd": total_cost_usd,
+        },
+    )
 
 
 if __name__ == "__main__":
