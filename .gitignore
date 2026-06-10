@@ -1,9 +1,33 @@
+# python
 __pycache__/
 *.py[cod]
+*.pyo
 .venv/
+dist/
+*.egg-info/
+
+# sqlite
 *.db
 *.db-shm
 *.db-wal
-.env
+
+# autoresearch artifacts (large, pushed separately via task publish)
 *.tsv
+results/
+
+# env
+.env
+.env.*
+
+# task
 .task/
+
+# editors
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+
+# cloud-init customisations (secrets go here, never commit)
+/tmp/startup.sh

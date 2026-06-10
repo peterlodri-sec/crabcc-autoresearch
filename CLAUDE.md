@@ -1,22 +1,44 @@
 # crabcc-autoresearch
 
-Autonomous ML training loop (Karpathy autoresearch) with telemetry to Hetzner VM.
+Autonomous ML training loop (Karpathy autoresearch) — trains a small transformer
+to classify λ-term normalization status using the lambda-normalization-census dataset.
 
-## Components
-- `worker/` — runs on ephemeral GPU spot instance
-- `receiver/` — runs on Hetzner VM, serves research.crabcc.app
-- `nix/` — drop-in module for nix-base
+## components
 
-## Quick start (Hetzner)
+- `worker/` — runs on ephemeral GPU spot instance (Vast.ai)
+- `receiver/` — runs on Hetzner VM, serves research.crabcc.app dashboard
+- `nix/` — drop-in NixOS module for nix-base
+
+## quick start (receiver — hetzner)
+
+```bash
 cd receiver && task serve
+```
 
-## Quick start (GPU worker)
+## quick start (worker — gpu instance)
+
+```bash
 export TS_AUTHKEY=tskey-auth-...
 export OPENROUTER_API_KEY=sk-or-...
 export LLM_MODEL=anthropic/claude-sonnet-4-6
 export CRABCC_RECEIVER_URL=http://<hetzner-tailscale-ip>:8787
-export RUN_ID=crabcc-run-001
-cd worker && task run
+export GITHUB_TOKEN=github_pat_...
+export RUN_ID=crabcc-run-$(date +%Y%m%d-%H%M)
+export BUDGET_USD=12
+export PROVIDER=vast.ai
 
-## NixOS integration
-Copy nix/crabcc-research-sync.nix into nix-base and import in the host config.
+cd worker && task run
+```
+
+## tests
+
+```bash
+cd receiver && uv sync --dev && task test
+cd worker   && uv sync --dev && task test
+```
+
+## nix integration
+
+```nix
+imports = [ ./nix/crabcc-research-sync.nix ];
+```
