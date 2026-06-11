@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this compute harness or build on it, please cite it as below."
+type: software
+title: "crabcc-autoresearch: autonomous ML research loop for λ-term normalization classification"
+abstract: >-
+  A headless, cost-transparent GPU compute harness that runs Karpathy's autoresearch
+  loop to train a small transformer classifying λ-term normalization status
+  (SN / SEP / NWN / UND). Automatically archives training artifacts to the
+  lambda-normalization-census open dataset after each run.
+authors:
+  - family-names: Lodri
+    given-names: Peter
+    alias: peterlodri-sec
+repository-code: "https://github.com/peterlodri-sec/crabcc-autoresearch"
+license: MIT
+license-url: "https://github.com/peterlodri-sec/crabcc-autoresearch/blob/main/LICENSE"
+keywords:
+  - machine learning
+  - autonomous research
+  - lambda calculus
+  - normalization
+  - autoresearch
+  - openrouter
+  - vast.ai
+date-released: "2026-06-10"
+version: "0.1.0"
+references:
+  - type: dataset
+    title: "λ-Normalization Census: open data and engine for normalization geometry of the untyped λ-calculus"
+    authors:
+      - family-names: Lodri
+        given-names: Peter
+        alias: peterlodri-sec
+    repository-code: "https://github.com/peterlodri-sec/lambda-normalization-census"
+    version: "0.1.0"
+    date-released: "2026-06-10"
+  - type: software
+    title: "autoresearch: an autonomous research system that tries to improve a neural network training script"
+    authors:
+      - family-names: Karpathy
+        given-names: Andrej
+    repository-code: "https://github.com/karpathy/autoresearch"
